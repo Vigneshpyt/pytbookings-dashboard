@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Pickyourtrail — Agent Productivity Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f4f2;color:#1a1a1a;padding:20px}
+.wrap{max-width:1200px;margin:0 auto}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.brand{display:flex;align-items:center;gap:10px}
+.dot{width:10px;height:10px;border-radius:50%;background:#E24B4A;flex-shrink:0}
+h1{font-size:17px;font-weight:600}
+.sub{font-size:12px;color:#999;margin-top:2px}
+.period{font-size:12px;background:#fff;border:1px solid #eee;border-radius:7px;padding:5px 12px;color:#555}
+
+/* UPLOAD BAR */
+.upbar{background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.upbar-left{display:flex;align-items:center;gap:12px}
+.up-ico{width:36px;height:36px;border-radius:8px;background:#E6F1FB;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.up-title{font-size:13px;font-weight:600}
+.up-sub{font-size:11px;color:#999;margin-top:2px}
+.up-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.status-badge{font-size:12px;padding:5px 12px;border-radius:99px;font-weight:500;display:none}
+.btn-primary{font-size:12px;padding:7px 16px;background:#1a1a1a;color:#fff;border:none;border-radius:7px;cursor:pointer;font-weight:500}
+.btn-primary:hover{background:#333}
+.btn-ghost{font-size:12px;padding:6px 12px;border:1px solid #eee;border-radius:7px;background:none;color:#888;cursor:pointer}
+.btn-danger{font-size:12px;padding:6px 12px;border:1px solid #E24B4A;border-radius:7px;background:none;color:#E24B4A;cursor:pointer}
+input[type=password]{font-size:12px;padding:6px 10px;border:1px solid #ddd;border-radius:7px;width:110px;outline:none}
+input[type=password]:focus{border-color:#1a1a1a}
+
+/* SUB REGION FILTER */
+.sr-bar{background:#fff;border:1px solid #eee;border-radius:12px;padding:10px 16px;margin-bottom:14px;display:none;align-items:center;gap:10px;flex-wrap:wrap}
+.sr-label{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em}
+.sr-chip{font-size:12px;padding:4px 14px;border-radius:99px;border:1.5px solid #eee;background:#fafafa;cursor:pointer;font-weight:500;color:#555;transition:all .15s}
+.sr-chip:hover{border-color:#1a1a1a;color:#1a1a1a}
+.sr-chip.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+.stat{background:#fff;border-radius:10px;border:1px solid #eee;padding:14px 16px}
+.stat.clickable{cursor:pointer}
+.stat.clickable:hover{border-color:#ccc;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.stat-label{font-size:11px;color:#999;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.stat-val{font-size:26px;font-weight:700;color:#1a1a1a}
+.c-green{color:#3B6D11}.c-amber{color:#854F0B}.c-red{color:#A32D2D}.c-purple{color:#5A3E8C}
+
+/* LEGEND */
+.legend{display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:#555}
+.legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+/* AGENT CARDS */
+.agents-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:16px}
+.agent-card{background:#fff;border-radius:12px;border:1px solid #eee;padding:18px}
+.agent-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.agent-left{display:flex;align-items:center;gap:10px}
+.avatar{width:38px;height:38px;border-radius:50%;background:#E6F1FB;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#185FA5;flex-shrink:0}
+.agent-name{font-size:15px;font-weight:600}
+.agent-sub{font-size:12px;color:#999;margin-top:1px}
+.rank-pill{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600;background:#EAF3DE;color:#3B6D11}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.metric{border-radius:8px;padding:10px 12px;text-align:center;cursor:pointer;border:1.5px solid transparent;transition:transform .15s}
+.metric:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.m-green{background:#EAF3DE;border-color:#C0DD97}
+.m-amber{background:#FAEEDA;border-color:#FAC775}
+.m-red{background:#FCEBEB;border-color:#F7C1C1}
+.m-purple{background:#EDE8F7;border-color:#C4B5E8}
+.metric-val{font-size:20px;font-weight:700}
+.metric-label{font-size:10px;margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.mv-green{color:#3B6D11}.mv-amber{color:#854F0B}.mv-red{color:#A32D2D}.mv-purple{color:#5A3E8C}
+.sbar{height:8px;border-radius:4px;display:flex;overflow:hidden;margin-bottom:6px}
+.sb-green{background:#639922}.sb-amber{background:#EF9F27}.sb-red{background:#E24B4A}
+.sbar-legend{display:flex;gap:10px}
+.sbar-item{display:flex;align-items:center;gap:4px;font-size:10px;color:#888}
+.sbar-dot{width:7px;height:7px;border-radius:50%}
+.recent-header{display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid #f0f0f0;margin-top:4px;margin-bottom:8px}
+.recent-label{font-size:11px;font-weight:600;color:#bbb;text-transform:uppercase;letter-spacing:.04em}
+.view-all-btn{font-size:11px;padding:3px 10px;border:1px solid #ddd;border-radius:99px;background:none;cursor:pointer;color:#555}
+.mini-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.mini-table th{font-size:10px;font-weight:600;color:#bbb;padding:4px 6px;text-align:left;border-bottom:1px solid #f5f5f5;text-transform:uppercase}
+.mini-table td{font-size:11px;color:#333;padding:5px 6px;border-bottom:1px solid #f9f9f9;vertical-align:middle}
+.mini-table tr:last-child td{border-bottom:none}
+
+/* BADGES */
+.badge{font-size:10px;padding:2px 7px;border-radius:99px;font-weight:600;white-space:nowrap}
+.b-green{background:#EAF3DE;color:#3B6D11}
+.b-amber{background:#FAEEDA;color:#854F0B}
+.b-red{background:#FCEBEB;color:#A32D2D}
+.b-purple{background:#EDE8F7;color:#5A3E8C}
+
+/* HEATMAP */
+.heatmap-card{background:#fff;border-radius:12px;border:1px solid #eee;padding:18px;margin-bottom:16px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.card-title{font-size:12px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.05em}
+.month-select{font-size:12px;padding:5px 10px;border:1px solid #ddd;border-radius:7px;background:#fff;color:#555}
+.heatmap-wrap{overflow-x:auto}
+.htbl{border-collapse:separate;border-spacing:3px;width:100%}
+.htbl th{font-size:10px;color:#bbb;text-align:center;padding-bottom:4px;font-weight:500;min-width:90px}
+.htbl th.hn{text-align:left;min-width:120px;font-size:11px}
+.htbl td.hn{font-size:12px;font-weight:500;color:#555;padding-right:8px;white-space:nowrap;vertical-align:middle}
+.hcell{min-width:90px;height:32px;border-radius:5px;text-align:center;vertical-align:middle;font-size:11px;font-weight:600}
+.hleg{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:11px;color:#aaa}
+.hlc{width:14px;height:14px;border-radius:3px;display:inline-block;border:1px solid #eee}
+
+/* LEADERBOARD */
+.lb-card{background:#fff;border-radius:12px;border:1px solid #eee;padding:18px;margin-bottom:16px}
+.lb-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.lb-agent{border-radius:10px;padding:14px;border:1px solid #eee;background:#fafafa;position:relative;text-align:center;cursor:pointer;transition:box-shadow .15s}
+.lb-agent:hover{box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.lb-rank{position:absolute;top:8px;left:10px;font-size:13px;font-weight:700;color:#999}
+.lb-rank.r1{color:#B8860B}.lb-rank.r2{color:#888}.lb-rank.r3{color:#CD7F32}
+.lb-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;margin:0 auto 6px;border:3px solid transparent}
+.av1{background:#FAEEDA;color:#854F0B;border-color:#FAC775}
+.av2{background:#f0f0ee;color:#5F5E5A;border-color:#D3D1C7}
+.av3{background:#FAECE7;color:#712B13;border-color:#F5C4B3}
+.av4{background:#E6F1FB;color:#185FA5;border-color:#B5D4F4}
+.lb-name{font-size:12px;font-weight:600;margin-bottom:4px}
+.lb-score{font-size:24px;font-weight:700;color:#3B6D11;line-height:1}
+.lb-score-label{font-size:10px;color:#999;margin-top:2px;text-transform:uppercase;margin-bottom:6px}
+.lb-mets{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:2px;margin-bottom:6px}
+.lb-met{background:#fff;border-radius:4px;padding:3px 2px;text-align:center;border:1px solid #f0f0f0}
+.lb-mv{font-size:12px;font-weight:600}
+.lb-ml{font-size:8px;color:#bbb;text-transform:uppercase}
+.lb-bar{height:4px;border-radius:2px;background:#eee;margin-bottom:4px;overflow:hidden}
+.lb-fill{height:100%;border-radius:2px;background:#639922}
+.lb-foot{font-size:10px;color:#bbb}
+
+/* PRIORITY VIEW */
+#pending-priority-wrap{display:none;flex-direction:row}
+@media(max-width:800px){#pending-priority-wrap{flex-direction:column}}
+.pw-trail{padding:9px 10px;border-radius:7px;margin-bottom:6px;border:1px solid #f0f0f0;background:#fafafa;cursor:pointer;transition:box-shadow .15s}
+.pw-trail:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);background:#fff}
+.pw-trail-row1{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
+.pw-trail-id{font-family:monospace;font-size:10px;color:#aaa}
+.pw-trail-dep{font-size:12px;font-weight:600;color:#1a1a1a}
+.pw-trail-row2{display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap}
+.pw-ao{font-size:11px;font-weight:600;color:#185FA5}
+.pw-sr{font-size:10px;color:#888;background:#f0f0f0;padding:1px 6px;border-radius:99px}
+.pw-cust{font-size:10px;color:#aaa}
+.pw-days-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;white-space:nowrap}
+.pwd-urgent{background:#FCEBEB;color:#A32D2D}
+.pwd-near{background:#FAEEDA;color:#854F0B}
+.pwd-far{background:#EAF3DE;color:#3B6D11}
+.pwd-none{background:#f0f0f0;color:#888}
+.priority-card{background:#fff;border-radius:12px;border:1px solid #eee;padding:18px;margin-bottom:16px}
+.priority-buckets{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+.bucket{border-radius:10px;padding:14px;border:2px solid transparent}
+.bucket-red{background:#FFF5F5;border-color:#F7C1C1}
+.bucket-amber{background:#FFFBF0;border-color:#FAC775}
+.bucket-green{background:#F4FAE8;border-color:#C0DD97}
+.bucket-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.bucket-title{font-size:13px;font-weight:700}
+.bucket-title-red{color:#A32D2D}
+.bucket-title-amber{color:#854F0B}
+.bucket-title-green{color:#3B6D11}
+.bucket-count{font-size:20px;font-weight:700;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px}
+.bc-red{background:#FCEBEB;color:#A32D2D}
+.bc-amber{background:#FAEEDA;color:#854F0B}
+.bc-green{background:#EAF3DE;color:#3B6D11}
+.bucket-trail{padding:8px 10px;border-radius:7px;margin-bottom:6px;cursor:pointer;transition:box-shadow .15s}
+.bucket-trail:hover{box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.bt-red{background:#fff;border:1px solid #F7C1C1}
+.bt-amber{background:#fff;border:1px solid #FAC775}
+.bt-green{background:#fff;border:1px solid #C0DD97}
+.bt-row1{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
+.bt-id{font-family:monospace;font-size:10px;color:#999}
+.bt-days{font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px}
+.days-red{background:#FCEBEB;color:#A32D2D}
+.days-amber{background:#FAEEDA;color:#854F0B}
+.days-green{background:#EAF3DE;color:#3B6D11}
+.bt-row2{font-size:11px;color:#555;font-weight:500}
+.bt-row3{font-size:10px;color:#999;margin-top:2px}
+.bt-ao{font-size:10px;color:#185FA5;font-weight:600;margin-top:2px}
+.bucket-empty{text-align:center;padding:20px;color:#bbb;font-size:12px}
+.priority-toggle{font-size:12px;padding:5px 14px;border-radius:99px;border:1.5px solid #eee;background:#fafafa;cursor:pointer;font-weight:500;color:#555;transition:all .15s}
+.priority-toggle.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+
+/* MONTH FILTERS */
+.month-filter-bar{background:#fff;border:1px solid #eee;border-radius:12px;padding:10px 16px;margin-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.mf-group{display:flex;align-items:center;gap:8px}
+.mf-label{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.mf-select{font-size:12px;padding:5px 10px;border:1px solid #ddd;border-radius:7px;background:#fff;color:#555}
+.mf-clear{font-size:11px;padding:4px 10px;border-radius:99px;border:1px solid #ddd;background:none;color:#888;cursor:pointer}
+.mf-clear:hover{border-color:#A32D2D;color:#A32D2D}
+
+@media(max-width:700px){
+  .priority-buckets{grid-template-columns:1fr}
+}
+/* DAILY BOOKINGS */
+.db-card{background:#fff;border-radius:12px;border:1px solid #eee;padding:18px;margin-bottom:16px}
+.db-title{font-size:12px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.db-sub{font-size:11px;color:#bbb;margin-bottom:12px}
+.db-filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.db-filters label{font-size:12px;color:#888}
+.db-filters select{font-size:12px;padding:5px 8px;border:1px solid #ddd;border-radius:7px;background:#fff}
+.db-wrap{overflow:auto;max-height:420px;border:1px solid #eee;border-radius:8px}
+.dbtbl{width:100%;border-collapse:separate;border-spacing:0;min-width:600px}
+.dbtbl th{font-size:11px;font-weight:600;color:#999;padding:8px 12px;text-align:left;border-bottom:2px solid #eee;background:#fafafa;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;z-index:2}
+.dbtbl th.date-col{min-width:100px;position:sticky;top:0;left:0;z-index:3;background:#f0f0ee;border-right:2px solid #ddd}
+.dbtbl th.owner-col{min-width:80px;text-align:center}
+.dbtbl th.total-col{text-align:center;background:#f0f0f0;min-width:60px;position:sticky;right:0;z-index:2;border-left:2px solid #ddd}
+.dbtbl td{font-size:12px;padding:7px 12px;border-bottom:1px solid #f5f5f5;vertical-align:middle}
+.dbtbl tr:hover td{background:#fafafa}
+.dbtbl tr:last-child td{border-bottom:none}
+.dbtbl td.date-cell{font-weight:600;color:#1a1a1a;white-space:nowrap;position:sticky;left:0;z-index:1;background:#fff;border-right:2px solid #eee}
+.dbtbl tr:hover td.date-cell{background:#fafafa}
+.dbtbl td.count-cell{text-align:center}
+.dbtbl td.total-cell{text-align:center;font-weight:700;background:#f9f9f7;position:sticky;right:0;z-index:1;border-left:2px solid #eee}
+.count-pill{display:inline-block;min-width:24px;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;text-align:center}
+.cp0{color:#ccc}.cp1{background:#EAF3DE;color:#3B6D11}.cp2{background:#C0DD97;color:#27500A}.cp3{background:#97C459;color:#173404}.cp-hi{background:#3B6D11;color:#fff}
+.total-pill{display:inline-block;min-width:28px;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700;background:#1a1a1a;color:#fff;text-align:center}
+
+/* MODAL */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
+.modal.open{display:flex}
+.modal-box{background:#fff;border-radius:14px;width:92%;max-width:820px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+.modal-hdr{padding:16px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px}
+.modal-title{font-size:15px;font-weight:600}
+.modal-sub{font-size:12px;color:#999;margin-top:2px}
+.modal-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.modal-count{background:#f4f4f2;border-radius:7px;padding:3px 10px;font-size:12px;font-weight:600;color:#555}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:#bbb;padding:2px 8px;border-radius:4px}
+.modal-close:hover{background:#f5f5f5;color:#555}
+.modal-tabs{display:flex;gap:6px;padding:10px 20px;border-bottom:1px solid #f0f0f0;flex-shrink:0;flex-wrap:wrap}
+.mtab{font-size:11px;padding:4px 12px;border-radius:99px;border:1px solid #eee;background:#fff;cursor:pointer;color:#888;font-weight:500}
+.mtab.active-all{background:#1a1a1a;color:#fff;border-color:#1a1a1a;font-weight:600}
+.mtab.active-green{background:#EAF3DE;color:#3B6D11;border-color:#C0DD97;font-weight:600}
+.mtab.active-amber{background:#FAEEDA;color:#854F0B;border-color:#FAC775;font-weight:600}
+.mtab.active-red{background:#FCEBEB;color:#A32D2D;border-color:#F7C1C1;font-weight:600}
+.mtab.active-purple{background:#EDE8F7;color:#5A3E8C;border-color:#C4B5E8;font-weight:600}
+.modal-body{padding:0 20px 16px;overflow-y:auto;flex:1}
+.dtbl{width:100%;border-collapse:collapse;table-layout:fixed}
+.dtbl th{font-size:11px;font-weight:600;color:#aaa;padding:10px 8px;text-align:left;border-bottom:1px solid #eee;background:#fafafa;text-transform:uppercase;position:sticky;top:0;z-index:1}
+.dtbl td{font-size:12px;color:#1a1a1a;padding:9px 8px;border-bottom:1px solid #f5f5f5;vertical-align:middle}
+.dtbl tr:last-child td{border-bottom:none}
+.dtbl tr:hover td{background:#fafafa}
+.urgent-tag{font-size:10px;padding:1px 6px;border-radius:99px;background:#FCEBEB;color:#A32D2D;font-weight:600;margin-left:4px}
+
+@media(max-width:700px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .agents-grid,.lb-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="brand">
+    <div class="dot"></div>
+    <div>
+      <h1>Pickyourtrail — Agent Productivity Dashboard</h1>
+      <div class="sub">Booked / On Trip / Returned = Completed &middot; Won = Pending &middot; SLA &le; 4 days</div>
+    </div>
+  </div>
+  <div class="period" id="period-label"></div>
+</div>
+
+<!-- UPLOAD BAR -->
+<div class="upbar">
+  <div class="upbar-left">
+    <div class="up-ico" id="up-ico">&#128274;</div>
+    <div>
+      <div class="up-title" id="up-title">View only mode</div>
+      <div class="up-sub" id="up-sub">Enter PIN to upload data</div>
+    </div>
+  </div>
+  <div class="up-actions">
+    <span class="status-badge" id="status-badge"></span>
+    <div id="locked-view" style="display:flex;align-items:center;gap:8px">
+      <input type="password" id="pin-inp" placeholder="Enter PIN" onkeydown="if(event.key==='Enter')checkPin()"/>
+      <button class="btn-primary" onclick="checkPin()">Unlock</button>
+    </div>
+    <div id="unlocked-view" style="display:none;align-items:center;gap:8px">
+      <input type="file" id="file-inp" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this)"/>
+      <button class="btn-primary" onclick="document.getElementById('file-inp').click()">+ Upload Excel</button>
+      <button class="btn-ghost" onclick="clearData()">Clear</button>
+      <button class="btn-danger" onclick="lockUpload()">&#128274; Lock</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUB REGION FILTER -->
+<div class="sr-bar" id="sr-bar">
+  <span class="sr-label">&#127758; Sub Region:</span>
+</div>
+
+<!-- STATS -->
+<div id="sr-active-banner" style="display:none;background:#E6F1FB;border:1px solid #B5D4F4;border-radius:8px;padding:8px 14px;margin-bottom:10px;font-size:12px;color:#185FA5;font-weight:500"></div>
+<div class="stats">
+  <div class="stat"><div class="stat-label">Total Allocated</div><div class="stat-val" id="s-total">--</div></div>
+  <div class="stat"><div class="stat-label">Completed On Time</div><div class="stat-val c-green" id="s-ontime">--</div></div>
+  <div class="stat"><div class="stat-label">Completed Late</div><div class="stat-val c-amber" id="s-late">--</div></div>
+  <div class="stat clickable" onclick="togglePriorityView()" title="Click to see priority view"><div class="stat-label">Pending (Won) &#128680;</div><div class="stat-val c-red" id="s-pending">--</div></div>
+  <div class="stat clickable" onclick="openAllMissed()" title="Click to view"><div class="stat-label">Missed Trails &#9888;</div><div class="stat-val c-purple" id="s-missed">--</div></div>
+</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#639922"></div>On time (booked &le; 4 days)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div>Late (booked after 4 days)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div>Pending &mdash; not booked yet</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#7C5CBF"></div>Missed &mdash; returned/expired without booking</div>
+</div>
+
+<!-- MONTH FILTERS -->
+<div class="month-filter-bar" id="month-filter-bar" style="display:none">
+  <div class="mf-group">
+    <span class="mf-label">&#128197; Convert Month:</span>
+    <select class="mf-select" id="mf-conv" onchange="applyMonthFilters()">
+      <option value="all">All months</option>
+    </select>
+  </div>
+  <div class="mf-group">
+    <span class="mf-label">&#9992;&#65039; Departure Month:</span>
+    <select class="mf-select" id="mf-dep" onchange="applyMonthFilters()">
+      <option value="all">All months</option>
+    </select>
+  </div>
+  <button class="mf-clear" onclick="clearMonthFilters()">&#10005; Clear filters</button>
+  <span id="mf-result" style="font-size:11px;color:#185FA5;font-weight:500"></span>
+</div>
+
+<!-- PENDING + PRIORITY TWO-COLUMN VIEW -->
+<div class="priority-card" id="priority-card" style="display:none">
+  <div class="card-header">
+    <div>
+      <div class="card-title">&#128680; Pending Trails Dashboard</div>
+      <div style="font-size:11px;color:#bbb;margin-top:2px">All pending Won trails &middot; Priority view for next 20 days</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span id="priority-total" style="font-size:12px;background:#FCEBEB;color:#A32D2D;padding:4px 12px;border-radius:99px;font-weight:600"></span>
+      <button onclick="togglePriorityView()" style="font-size:11px;padding:4px 12px;border:1px solid #ddd;border-radius:99px;background:none;cursor:pointer;color:#888">&#10005; Close</button>
+    </div>
+  </div>
+  <!-- Two column layout -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px">
+    <!-- LEFT: All Pending Won -->
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:#A32D2D;display:flex;align-items:center;gap:6px">
+          &#128308; Pending Won
+          <span id="pending-won-count" style="font-size:11px;background:#FCEBEB;color:#A32D2D;padding:2px 8px;border-radius:99px;font-weight:600"></span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <label style="font-size:11px;color:#999">Sort:</label>
+          <select id="pw-sort" onchange="renderPendingWon()" style="font-size:11px;padding:3px 6px;border:1px solid #ddd;border-radius:6px">
+            <option value="dep-asc">Departure ↑</option>
+            <option value="dep-desc">Departure ↓</option>
+            <option value="ao">By Agent</option>
+          </select>
+        </div>
+      </div>
+      <div id="pending-won-list" style="max-height:520px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+    <!-- RIGHT: Priority Buckets (20 days) -->
+    <div>
+      <div style="font-size:12px;font-weight:700;color:#1a1a1a;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+        &#9889; Priority View — Next 20 Days
+        <span id="priority-bucket-count" style="font-size:11px;background:#EAF3DE;color:#3B6D11;padding:2px 8px;border-radius:99px;font-weight:600"></span>
+      </div>
+      <div class="priority-buckets" id="priority-buckets" style="grid-template-columns:1fr 1fr;gap:10px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- AGENT CARDS -->
+<div class="agents-grid" id="agents-grid"></div>
+
+<!-- HEATMAP -->
+<div class="heatmap-card">
+  <div class="card-header">
+    <div class="card-title">&#128197; Weekly Allocation Heatmap</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <label style="font-size:12px;color:#888;font-weight:600">Month:</label>
+      <select class="month-select" id="heatmap-month" onchange="renderHeatmap()"></select>
+    </div>
+  </div>
+  <div class="heatmap-wrap" id="heatmap-wrap"><div style="text-align:center;padding:2rem;color:#bbb;font-size:13px">No data yet</div></div>
+</div>
+
+<!-- LEADERBOARD -->
+<div class="lb-card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">&#9733; Leaderboard</div>
+      <div style="font-size:11px;color:#bbb;margin-top:2px">Ranked by most on-time closures &middot; Click any card to view trails &middot; <span id="lb-sr-label" style="color:#185FA5"></span></div>
+    </div>
+  </div>
+  <div class="lb-grid" id="lb-grid"></div>
+</div>
+
+<!-- DAILY BOOKINGS -->
+<div class="db-card">
+  <div class="db-title">&#128197; Daily Bookings Tracker</div>
+  <div class="db-sub">Trails booked per day by account owner</div>
+  <div class="db-filters">
+    <label>Owner:</label>
+    <select id="db-owner" onchange="renderDailyBookings()"><option value="all">All owners</option></select>
+    <label>Sub Region:</label>
+    <select id="db-sr" onchange="renderDailyBookings()"><option value="all">All regions</option></select>
+    <label>Sort:</label>
+    <select id="db-sort" onchange="renderDailyBookings()">
+      <option value="date-asc">Date (oldest first)</option>
+      <option value="date-desc">Date (newest first)</option>
+      <option value="total-desc">Total (highest first)</option>
+    </select>
+  </div>
+  <div class="db-wrap"><div id="db-table-wrap"><div style="text-align:center;padding:2rem;color:#bbb;font-size:13px">No data yet</div></div></div>
+</div>
+
+</div><!-- end wrap -->
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <div>
+        <div class="modal-title" id="modal-title"></div>
+        <div class="modal-sub" id="modal-sub"></div>
+      </div>
+      <div class="modal-right">
+        <span class="modal-count" id="modal-count"></span>
+        <button class="modal-close" id="modal-close">&#10005;</button>
+      </div>
+    </div>
+    <div class="modal-tabs" id="modal-tabs"></div>
+    <div class="modal-body">
+      <table class="dtbl"><thead id="modal-thead"></thead><tbody id="modal-tbody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================
+//  CONFIG
+// ============================================
+const SLA = 4;
+const VALID_PINS = ['PYT2026','CX1234'];
+const SUPA_URL = 'https://ynzisumrnmztuouyfbeb.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InluemlzdW1ybm16dHVvdXlmYmViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NjUyODcsImV4cCI6MjA5MjI0MTI4N30.dbYrURCQe8Ms6CIp2gW9Strurcs8Y3UzeJoQOBSh31w';
+const MNTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+// ============================================
+//  STATE
+// ============================================
+var AGENTS = [];
+var DB_DATA = {dates:[], owners:[], bookings:{}};
+var ACTIVE_SR = 'all';
+var curAgent = null;
+var curFilter = 'all';
+var uploadUnlocked = false;
+var TODAY = new Date().toISOString().slice(0,10);
+var ACTIVE_CONV_MONTH = 'all';
+var ACTIVE_DEP_MONTH = 'all';
+var PRIORITY_VISIBLE = false;
+
+// ============================================
+//  SUPABASE  (plain fetch, no SDK)
+// ============================================
+function supaFetch(method, path, body) {
+  var opts = {
+    method: method,
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  return fetch(SUPA_URL + '/rest/v1/' + path, opts);
+}
+
+function saveToSupabase() {
+  var payload = {
+    id: 'latest',
+    agents: AGENTS,
+    db_data: DB_DATA,
+    period_label: document.getElementById('period-label').textContent,
+    updated_at: new Date().toISOString()
+  };
+  // Use POST with upsert Prefer header - most reliable method
+  fetch(SUPA_URL + '/rest/v1/pyt_dashboard', {
+    method: 'POST',
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Prefer': 'resolution=merge-duplicates,return=minimal'
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(function(res) {
+    if (res.ok || res.status === 201 || res.status === 204) {
+      showStatus('✓ Saved — visible to all users', 'green');
+      console.log('Saved to Supabase OK');
+    } else {
+      res.text().then(function(t) { console.error('Save error:', res.status, t); });
+      showStatus('⚠ Save failed — try again', 'amber');
+    }
+  })
+  .catch(function(e) {
+    console.error('Save error:', e);
+    showStatus('⚠ Save failed', 'amber');
+  });
+}
+
+function loadFromSupabase() {
+  showStatus('Loading...', 'blue');
+  fetch(SUPA_URL + '/rest/v1/pyt_dashboard?id=eq.latest&select=*', {
+    method: 'GET',
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }
+  })
+    .then(function(res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(function(rows) {
+      console.log('Loaded rows:', rows);
+      if (!rows || !rows.length) {
+        showStatus('No data yet — upload Excel to begin', 'amber');
+        renderAll();
+        return;
+      }
+      var d = rows[0];
+      if (d.agents && Array.isArray(d.agents) && d.agents.length) {
+        AGENTS = d.agents;
+        DB_DATA = d.db_data || {dates:[],owners:[],bookings:{}};
+        if (d.period_label) {
+          document.getElementById('period-label').textContent = d.period_label;
+          document.getElementById('modal-sub').textContent = d.period_label;
+        }
+        renderAll();
+        showStatus('✓ Data loaded', 'green');
+      } else {
+        showStatus('No data yet — upload Excel to begin', 'amber');
+        renderAll();
+      }
+    })
+    .catch(function(e) {
+      console.error('Load error:', e);
+      showStatus('Could not connect — check internet', 'red');
+      renderAll();
+    });
+}
+
+// ============================================
+//  STATUS BADGE
+// ============================================
+function showStatus(msg, color) {
+  var el = document.getElementById('status-badge');
+  el.textContent = msg;
+  el.style.display = 'inline-block';
+  var colors = {
+    green: {bg:'#EAF3DE', color:'#3B6D11'},
+    amber: {bg:'#FAEEDA', color:'#854F0B'},
+    red:   {bg:'#FCEBEB', color:'#A32D2D'},
+    blue:  {bg:'#E6F1FB', color:'#185FA5'}
+  };
+  var c = colors[color] || colors.blue;
+  el.style.background = c.bg;
+  el.style.color = c.color;
+  if (color !== 'blue') {
+    setTimeout(function() { el.style.display = 'none'; }, 4000);
+  }
+}
+
+// ============================================
+//  PIN / UPLOAD LOCK
+// ============================================
+function checkPin() {
+  var pin = document.getElementById('pin-inp').value.trim();
+  if (VALID_PINS.indexOf(pin) >= 0) {
+    uploadUnlocked = true;
+    document.getElementById('locked-view').style.display = 'none';
+    document.getElementById('unlocked-view').style.display = 'flex';
+    document.getElementById('up-ico').textContent = '🔓';
+    document.getElementById('up-title').textContent = 'Upload mode active';
+    document.getElementById('up-sub').textContent = 'Upload your BI Excel file';
+    document.getElementById('pin-inp').value = '';
+    showStatus('✓ Unlocked', 'green');
+  } else {
+    document.getElementById('pin-inp').value = '';
+    document.getElementById('pin-inp').placeholder = 'Wrong PIN';
+    setTimeout(function() { document.getElementById('pin-inp').placeholder = 'Enter PIN'; }, 2000);
+  }
+}
+
+function lockUpload() {
+  uploadUnlocked = false;
+  document.getElementById('locked-view').style.display = 'flex';
+  document.getElementById('unlocked-view').style.display = 'none';
+  document.getElementById('up-ico').textContent = '🔒';
+  document.getElementById('up-title').textContent = 'View only mode';
+  document.getElementById('up-sub').textContent = 'Enter PIN to upload data';
+}
+
+function clearData() {
+  if (!confirm('Clear all data from Supabase?')) return;
+  supaFetch('DELETE', 'pyt_dashboard?id=eq.latest')
+    .then(function() { location.reload(); })
+    .catch(function(e) { console.error('Clear error:', e); });
+}
+
+// ============================================
+//  FILE HANDLING
+// ============================================
+function handleFile(inp) {
+  var file = inp.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var wb = XLSX.read(e.target.result, {type:'array'});
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var data = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:''});
+      processData(data);
+    } catch(err) {
+      alert('Could not read file: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  inp.value = '';
+}
+
+function processData(data) {
+  // Find header row (look for account_owner)
+  var hi = -1;
+  for (var i = 0; i < Math.min(data.length, 20); i++) {
+    if (data[i] && data[i].some(function(c) {
+      return String(c||'').trim().toLowerCase() === 'account_owner';
+    })) { hi = i; break; }
+  }
+  if (hi === -1) { alert('Cannot find account_owner column in your file.'); return; }
+
+  var headers = data[hi].map(function(h) { return String(h||'').trim(); });
+  var rows = data.slice(hi + 1).filter(function(r) {
+    return r.some(function(c) { return String(c||'').trim(); });
+  });
+
+  // Column index finder (case-insensitive)
+  function ci(names) {
+    for (var n = 0; n < names.length; n++) {
+      var idx = -1;
+      for (var h = 0; h < headers.length; h++) {
+        if (headers[h].toLowerCase().trim() === names[n].toLowerCase()) { idx = h; break; }
+      }
+      if (idx >= 0) return idx;
+    }
+    return -1;
+  }
+
+  var oi  = ci(['account_owner']);
+  var cdi = ci(['converted_date','Converted_date']);
+  var bi  = ci(['tal_booked_date','booked_date']);
+  var di  = ci(['departure_date']);
+  var sti = ci(['trip_custodian_name','custodian_name']);
+  var ti  = ci(['trail_id']);
+  var tsi = ci(['trail_status']);
+  var sri = ci(['sub_region','subregion','sub region']);
+
+  if (oi < 0 || cdi < 0) {
+    alert('Required columns missing.\nFound: ' + headers.filter(Boolean).join(', '));
+    return;
+  }
+
+  // Parse date helper
+  function pd(v) {
+    if (v === null || v === undefined || v === '') return null;
+    var s = String(v).trim();
+    if (!s || s === 'null' || s === 'NaT') return null;
+    if (/^\d{5}$/.test(s)) {
+      var d = new Date((parseInt(s) - 25569) * 86400 * 1000);
+      return d.getUTCFullYear() + '-' + String(d.getUTCMonth()+1).padStart(2,'0') + '-' + String(d.getUTCDate()).padStart(2,'0');
+    }
+    if (s.length > 10 && s[4] === '-' && s[7] === '-') return s.substring(0,10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    var d2 = new Date(s);
+    if (!isNaN(d2.getTime())) {
+      return d2.getUTCFullYear() + '-' + String(d2.getUTCMonth()+1).padStart(2,'0') + '-' + String(d2.getUTCDate()).padStart(2,'0');
+    }
+    return null;
+  }
+
+  function fmtS(s) { if(!s) return '--'; var p=s.split('-'); return MNTHS[parseInt(p[1])-1]+' '+parseInt(p[2]); }
+  function fmtL(s) { if(!s) return '--'; var p=s.split('-'); return MNTHS[parseInt(p[1])-1]+' '+parseInt(p[2])+', '+p[0]; }
+
+  var grouped = {};
+  var bookingMap = {}; // date -> owner -> {total, sr:{}}
+
+  rows.forEach(function(r) {
+    var owner = String(r[oi]||'').trim();
+    if (!owner || owner.toLowerCase() === 'account_owner' || owner.toLowerCase().startsWith('applied')) return;
+
+    if (!grouped[owner]) grouped[owner] = {name:owner, trails:[]};
+
+    var conv   = pd(r[cdi]);
+    var booked = bi >= 0 ? pd(r[bi]) : null;
+    var dep    = di >= 0 ? pd(r[di]) : null;
+    var tsRaw  = String(tsi >= 0 ? r[tsi] : '').trim().toLowerCase();
+    var subReg = String(sri >= 0 ? r[sri] : '').trim();
+
+    // Determine status
+    var COMPLETED = ['booked','on trip','returned'];
+    var isCompleted = COMPLETED.indexOf(tsRaw) >= 0;
+    var isMissed = (['returned','on trip'].indexOf(tsRaw) >= 0 && !booked) ||
+                   (tsRaw === 'won' && dep && dep < TODAY);
+
+    var status = 'pending', days = null;
+    if (isMissed) {
+      status = 'missed';
+    } else if (isCompleted && conv && booked) {
+      days = Math.round((new Date(booked) - new Date(conv)) / 864e5);
+      status = days <= SLA ? 'on_time' : 'late';
+    }
+
+    // Daily bookings map
+    if ((status === 'on_time' || status === 'late') && conv && days !== null) {
+      var parts = conv.split('-');
+      var bookedDate = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2])));
+      bookedDate.setUTCDate(bookedDate.getUTCDate() + days);
+      var iso = bookedDate.getUTCFullYear() + '-' +
+        String(bookedDate.getUTCMonth()+1).padStart(2,'0') + '-' +
+        String(bookedDate.getUTCDate()).padStart(2,'0');
+      if (!bookingMap[iso]) bookingMap[iso] = {};
+      if (!bookingMap[iso][owner]) bookingMap[iso][owner] = {total:0, sr:{}};
+      bookingMap[iso][owner].total++;
+      var sr = subReg || 'Unknown';
+      bookingMap[iso][owner].sr[sr] = (bookingMap[iso][owner].sr[sr]||0) + 1;
+    }
+
+    grouped[owner].trails.push({
+      id: String(ti >= 0 ? r[ti] : '--').trim(),
+      conv: conv ? fmtS(conv) : '--',
+      conv_sort: conv || '',
+      booked: booked ? fmtS(booked) : null,
+      departure: dep ? fmtL(dep) : '--',
+      departure_sort: dep || '9999-99-99',
+      trail_status: tsRaw,
+      status: status,
+      days: days,
+      custodian: String(sti >= 0 ? r[sti] : '--').trim(),
+      sub_region: subReg
+    });
+  });
+
+  AGENTS = Object.values(grouped);
+
+  // Build DB_DATA
+  var allDates = Object.keys(bookingMap).sort();
+  var ownersSet = {};
+  var srSet = {};
+  AGENTS.forEach(function(a) {
+    ownersSet[a.name] = true;
+    a.trails.forEach(function(t) { if(t.sub_region) srSet[t.sub_region] = true; });
+  });
+  DB_DATA = {
+    dates: allDates,
+    owners: Object.keys(ownersSet),
+    bookings: bookingMap,
+    sub_regions: Object.keys(srSet).sort()
+  };
+
+  // Period label
+  if (allDates.length) {
+    var allConvDates = [];
+    AGENTS.forEach(function(a) { a.trails.forEach(function(t) { if(t.conv_sort) allConvDates.push(t.conv_sort); }); });
+    allConvDates.sort();
+    if (allConvDates.length) {
+      var txt = fmtS(allConvDates[0]) + ' – ' + fmtS(allConvDates[allConvDates.length-1]) + ', ' + allConvDates[0].split('-')[0];
+      document.getElementById('period-label').textContent = txt;
+    }
+  }
+
+  var c = {t:0,o:0,l:0,p:0,m:0};
+  AGENTS.forEach(function(a) {
+    a.trails.forEach(function(t) {
+      c.t++; if(t.status==='on_time')c.o++; else if(t.status==='late')c.l++;
+      else if(t.status==='pending')c.p++; else if(t.status==='missed')c.m++;
+    });
+  });
+  showStatus('✓ ' + AGENTS.length + ' agents | ' + c.o + ' on-time | ' + c.l + ' late | ' + c.p + ' pending | ' + c.m + ' missed', 'green');
+
+  renderAll();
+  saveToSupabase();
+}
+
+// ============================================
+//  HELPERS
+// ============================================
+function TODAY_DATE() { return new Date().toISOString().slice(0,10); }
+function ini(n) { return n.trim().split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase(); }
+function isUrgent(d) { if(!d||d==='9999-99-99')return false; return (new Date(d)-new Date(TODAY_DATE()))/864e5 <= 14; }
+function dLeft(d) { if(!d||d==='9999-99-99')return null; return Math.ceil((new Date(d)-new Date(TODAY_DATE()))/864e5); }
+function heatColor(v, max) {
+  if(v===0) return {bg:'#f5f5f3',txt:'#ccc'};
+  var t=v/max;
+  if(t<0.25) return {bg:'#DBEEFF',txt:'#0C447C'};
+  if(t<0.5)  return {bg:'#85B7EB',txt:'#042C53'};
+  if(t<0.75) return {bg:'#378ADD',txt:'#fff'};
+  return {bg:'#185FA5',txt:'#fff'};
+}
+
+function filteredTrails(a) {
+  return a.trails.filter(function(t) {
+    if (ACTIVE_SR !== 'all' && t.sub_region !== ACTIVE_SR) return false;
+    if (ACTIVE_CONV_MONTH !== 'all' && t.conv_sort.substring(0,7) !== ACTIVE_CONV_MONTH) return false;
+    if (ACTIVE_DEP_MONTH !== 'all' && t.departure_sort.substring(0,7) !== ACTIVE_DEP_MONTH) return false;
+    return true;
+  });
+}
+
+function counts(a) {
+  var tr = filteredTrails(a);
+  return {
+    on_time: tr.filter(function(t){return t.status==='on_time';}).length,
+    late:    tr.filter(function(t){return t.status==='late';}).length,
+    pending: tr.filter(function(t){return t.status==='pending';}).length,
+    missed:  tr.filter(function(t){return t.status==='missed';}).length,
+    total:   tr.length
+  };
+}
+
+function onTimeCount(a) { return counts(a).on_time; }
+
+// ============================================
+//  RENDER ALL
+// ============================================
+function renderAll() {
+  renderSRFilter();
+  renderMonthFilters();
+  renderStats();
+  renderAgentCards();
+  renderHeatmap();
+  renderLeaderboard();
+  renderPriorityView();
+  renderDailyBookingsFilters();
+  renderDailyBookings();
+}
+
+// ============================================
+//  MONTH FILTERS
+// ============================================
+function renderMonthFilters() {
+  if (!AGENTS.length) { document.getElementById('month-filter-bar').style.display='none'; return; }
+  document.getElementById('month-filter-bar').style.display = 'flex';
+
+  var convMonths = {}, depMonths = {};
+  AGENTS.forEach(function(a) {
+    a.trails.forEach(function(t) {
+      if (t.conv_sort) convMonths[t.conv_sort.substring(0,7)] = true;
+      if (t.departure_sort && t.departure_sort !== '9999-99-99') depMonths[t.departure_sort.substring(0,7)] = true;
+    });
+  });
+
+  function buildOptions(monthObj, selId, activeVal) {
+    var months = Object.keys(monthObj).sort();
+    var sel = document.getElementById(selId);
+    var html = '<option value="all">All months</option>';
+    months.forEach(function(ym) {
+      var p = ym.split('-');
+      var lbl = MNTHS[parseInt(p[1])-1] + ' ' + p[0];
+      html += '<option value="'+ym+'"'+(activeVal===ym?' selected':'')+'>'+lbl+'</option>';
+    });
+    sel.innerHTML = html;
+  }
+
+  buildOptions(convMonths, 'mf-conv', ACTIVE_CONV_MONTH);
+  buildOptions(depMonths,  'mf-dep',  ACTIVE_DEP_MONTH);
+}
+
+function applyMonthFilters() {
+  ACTIVE_CONV_MONTH = document.getElementById('mf-conv').value;
+  ACTIVE_DEP_MONTH  = document.getElementById('mf-dep').value;
+  var parts = [];
+  if (ACTIVE_CONV_MONTH !== 'all') { var p=ACTIVE_CONV_MONTH.split('-'); parts.push('Convert: '+MNTHS[parseInt(p[1])-1]+' '+p[0]); }
+  if (ACTIVE_DEP_MONTH  !== 'all') { var p=ACTIVE_DEP_MONTH.split('-');  parts.push('Departure: '+MNTHS[parseInt(p[1])-1]+' '+p[0]); }
+  document.getElementById('mf-result').textContent = parts.length ? '📍 Filtered by: '+parts.join(' & ') : '';
+  renderStats(); renderAgentCards(); renderLeaderboard(); renderHeatmap(); renderPriorityView();
+}
+
+function clearMonthFilters() {
+  ACTIVE_CONV_MONTH = 'all';
+  ACTIVE_DEP_MONTH  = 'all';
+  document.getElementById('mf-conv').value = 'all';
+  document.getElementById('mf-dep').value  = 'all';
+  document.getElementById('mf-result').textContent = '';
+  renderStats(); renderAgentCards(); renderLeaderboard(); renderHeatmap(); renderPriorityView();
+}
+
+// ============================================
+//  PRIORITY VIEW
+// ============================================
+var ACTIVE_PENDING_TAB = 'pending';
+
+function switchPendingTab(tab) {
+  ACTIVE_PENDING_TAB = tab;
+  // Update tab styles
+  var tabPending  = document.getElementById('tab-pending');
+  var tabPriority = document.getElementById('tab-priority');
+  var contPending  = document.getElementById('tab-content-pending');
+  var contPriority = document.getElementById('tab-content-priority');
+  if (tab === 'pending') {
+    tabPending.style.borderBottomColor  = '#E24B4A';
+    tabPending.style.color              = '#A32D2D';
+    tabPriority.style.borderBottomColor = 'transparent';
+    tabPriority.style.color             = '#bbb';
+    contPending.style.display  = 'block';
+    contPriority.style.display = 'none';
+  } else {
+    tabPriority.style.borderBottomColor = '#1a1a1a';
+    tabPriority.style.color             = '#1a1a1a';
+    tabPending.style.borderBottomColor  = 'transparent';
+    tabPending.style.color              = '#bbb';
+    contPending.style.display  = 'none';
+    contPriority.style.display = 'block';
+  }
+}
+
+function togglePriorityView() {
+  PRIORITY_VISIBLE = !PRIORITY_VISIBLE;
+  var card = document.getElementById('priority-card');
+  if (PRIORITY_VISIBLE) {
+    card.style.display = 'block';
+    renderPendingWon();
+    renderPriorityView();
+    card.scrollIntoView({behavior:'smooth', block:'start'});
+  } else {
+    card.style.display = 'none';
+  }
+}
+
+function renderPriorityView() {
+  if (!AGENTS.length) return;
+  var todayDate = new Date(TODAY_DATE());
+  var buckets = {b1:[],b2:[],b3:[]};
+
+  AGENTS.forEach(function(a) {
+    filteredTrails(a).forEach(function(t) {
+      if (t.status !== 'pending') return;
+      if (!t.departure_sort || t.departure_sort === '9999-99-99') return;
+      var dl = Math.ceil((new Date(t.departure_sort) - todayDate) / 864e5);
+      if (dl < 1 || dl > 15) return;
+      var trail = {id:t.id,departure:t.departure,departure_sort:t.departure_sort,
+        conv:t.conv,custodian:t.custodian,sub_region:t.sub_region,ao_name:a.name,days_left:dl};
+      if(dl<=5) buckets.b1.push(trail);
+      else if(dl<=10) buckets.b2.push(trail);
+      else buckets.b3.push(trail);
+    });
+  });
+  ['b1','b2','b3'].forEach(function(k){ buckets[k].sort(function(a,b){return a.days_left-b.days_left;}); });
+
+  var total = buckets.b1.length+buckets.b2.length+buckets.b3.length;
+  var ptotal = document.getElementById('priority-total');
+  if(ptotal) ptotal.textContent = total+' need action';
+
+  function bCard(t, bgCls, daysCls) {
+    return '<div class="bucket-trail '+bgCls+'" data-ao="'+t.ao_name+'" data-filter="pending">'+
+      '<div class="bt-row1"><span class="bt-id">'+t.id+'</span>'+
+      '<span class="bt-days '+daysCls+'">'+t.days_left+'d left</span></div>'+
+      '<div class="bt-row2" style="font-size:12px;font-weight:600;margin:2px 0">'+t.departure+'</div>'+
+      '<div class="bt-ao">'+t.ao_name+(t.sub_region?' &middot; <span style="color:#888;font-weight:400">'+t.sub_region+'</span>':'')+'</div>'+
+      '<div class="bt-row3">'+t.custodian+'</div></div>';
+  }
+
+  var bDefs=[
+    {key:'b1',title:'&#128308; 1-5 Days', tcls:'bucket-red',   ttcls:'bucket-title-red',   bccls:'bc-red',   bgCls:'bt-red',   dCls:'days-red'},
+    {key:'b2',title:'&#128993; 6-10 Days',tcls:'bucket-amber', ttcls:'bucket-title-amber', bccls:'bc-amber', bgCls:'bt-amber', dCls:'days-amber'},
+    {key:'b3',title:'&#128994; 11-15 Days',tcls:'bucket-green',ttcls:'bucket-title-green', bccls:'bc-green', bgCls:'bt-green', dCls:'days-green'}
+  ];
+
+  document.getElementById('priority-buckets').innerHTML = bDefs.map(function(b){
+    var trails=buckets[b.key];
+    return '<div class="bucket '+b.tcls+'">'+
+      '<div class="bucket-header"><span class="bucket-title '+b.ttcls+'">'+b.title+'</span>'+
+      '<span class="bucket-count '+b.bccls+'">'+trails.length+'</span></div>'+
+      (trails.length===0?'<div class="bucket-empty">No trails &#10003;</div>':
+        trails.map(function(t){return bCard(t,b.bgCls,b.dCls);}).join(''))+
+    '</div>';
+  }).join('');
+}
+
+function renderPendingWon() {
+  if (!AGENTS.length) return;
+  var aoFilter = document.getElementById('pw-ao-filter') ? document.getElementById('pw-ao-filter').value : 'all';
+  var srFilter = document.getElementById('pw-sr-filter') ? document.getElementById('pw-sr-filter').value : 'all';
+  var sort     = document.getElementById('pw-sort')      ? document.getElementById('pw-sort').value      : 'dep-asc';
+
+  var aoSet={}, srSet={};
+  AGENTS.forEach(function(a){
+    a.trails.forEach(function(t){
+      if(t.status==='pending'){aoSet[a.name]=true; if(t.sub_region)srSet[t.sub_region]=true;}
+    });
+  });
+  var aoSel=document.getElementById('pw-ao-filter');
+  if(aoSel) aoSel.innerHTML='<option value="all">All agents</option>'+Object.keys(aoSet).sort().map(function(o){
+    return '<option value="'+o+'"'+(aoFilter===o?' selected':'')+'>'+o+'</option>';
+  }).join('');
+  var srSel=document.getElementById('pw-sr-filter');
+  if(srSel) srSel.innerHTML='<option value="all">All regions</option>'+Object.keys(srSet).sort().map(function(s){
+    return '<option value="'+s+'"'+(srFilter===s?' selected':'')+'>'+s+'</option>';
+  }).join('');
+
+  var all=[];
+  AGENTS.forEach(function(a){
+    if(aoFilter!=='all'&&a.name!==aoFilter) return;
+    filteredTrails(a).forEach(function(t){
+      if(t.status!=='pending') return;
+      if(srFilter!=='all'&&t.sub_region!==srFilter) return;
+      all.push({id:t.id,departure:t.departure,departure_sort:t.departure_sort,
+        conv:t.conv,custodian:t.custodian,sub_region:t.sub_region,ao_name:a.name});
+    });
+  });
+
+  all.sort(function(a,b){
+    if(sort==='dep-desc') return b.departure_sort.localeCompare(a.departure_sort);
+    if(sort==='alloc-asc') return a.conv.localeCompare(b.conv);
+    return a.departure_sort.localeCompare(b.departure_sort);
+  });
+
+  var pwc=document.getElementById('pending-won-count')||document.getElementById('pending-all-count'); if(pwc) pwc.textContent=all.length+' trails';
+  var todayDate = new Date(TODAY_DATE());
+
+  document.getElementById('pending-won-list').innerHTML = all.length===0
+    ? '<div style="text-align:center;padding:2rem;color:#bbb;font-size:13px">No pending trails</div>'
+    : all.map(function(t){
+        var dl = t.departure_sort&&t.departure_sort!=='9999-99-99'
+          ? Math.ceil((new Date(t.departure_sort)-todayDate)/864e5) : null;
+        var daysCls = dl===null?'pwd-none':dl<=0?'pwd-urgent':dl<=5?'pwd-urgent':dl<=10?'pwd-near':'pwd-far';
+        var daysLbl = dl===null?'--':dl<=0?'Overdue':dl+'d left';
+        return '<div class="pw-trail" data-ao="'+t.ao_name+'" data-filter="pending">'+
+          '<div class="pw-trail-row1">'+
+            '<span class="pw-trail-id">'+t.id+'</span>'+
+            '<span class="pw-days-badge '+daysCls+'">'+daysLbl+'</span>'+
+          '</div>'+
+          '<div class="pw-trail-dep">&#9992;&#65039; '+t.departure+'</div>'+
+          '<div class="pw-trail-row2">'+
+            '<span class="pw-ao">'+t.ao_name+'</span>'+
+            (t.sub_region?'<span class="pw-sr">'+t.sub_region+'</span>':'')+
+            '<span class="pw-cust">'+t.custodian+'</span>'+
+          '</div>'+
+        '</div>';
+      }).join('');
+}
+
+
+// ============================================
+//  SUB REGION FILTER
+// ============================================
+function renderSRFilter() {
+  var srSet = {};
+  AGENTS.forEach(function(a) { a.trails.forEach(function(t) { if(t.sub_region) srSet[t.sub_region]=true; }); });
+  var srs = Object.keys(srSet).sort();
+  var bar = document.getElementById('sr-bar');
+  if (!srs.length) { bar.style.display='none'; return; }
+  bar.style.display = 'flex';
+  var html = '<span class="sr-label">&#127758; Sub Region:</span>';
+  html += '<button class="sr-chip'+(ACTIVE_SR==='all'?' active':'')+'" data-sr="all">All Regions</button>';
+  srs.forEach(function(sr) {
+    var cnt = AGENTS.reduce(function(s,a){ return s+a.trails.filter(function(t){return t.sub_region===sr;}).length; }, 0);
+    html += '<button class="sr-chip'+(ACTIVE_SR===sr?' active':'')+'" data-sr="'+sr+'">'+sr+' <span style="opacity:.6;font-size:10px">('+cnt+')</span></button>';
+  });
+  bar.innerHTML = html;
+  bar.querySelectorAll('.sr-chip').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      ACTIVE_SR = btn.dataset.sr;
+      var banner = document.getElementById('sr-active-banner');
+      if (ACTIVE_SR !== 'all') {
+        banner.style.display = 'block';
+        banner.textContent = '📍 Showing data for: ' + ACTIVE_SR + ' — all stats, agent cards, leaderboard and heatmap filtered';
+      } else {
+        banner.style.display = 'none';
+      }
+      renderSRFilter(); renderStats(); renderAgentCards(); renderLeaderboard(); renderHeatmap();
+    });
+  });
+}
+
+// ============================================
+//  STATS
+// ============================================
+function renderStats() {
+  var t=0,o=0,l=0,p=0,m=0;
+  AGENTS.forEach(function(a) { var c=counts(a); t+=c.total; o+=c.on_time; l+=c.late; p+=c.pending; m+=c.missed; });
+  document.getElementById('s-total').textContent   = t || '--';
+  document.getElementById('s-ontime').textContent  = o || (t?'0':'--');
+  document.getElementById('s-late').textContent    = l || (t?'0':'--');
+  document.getElementById('s-pending').textContent = p || (t?'0':'--');
+  document.getElementById('s-missed').textContent  = m || (t?'0':'--');
+}
+
+// ============================================
+//  AGENT CARDS
+// ============================================
+function renderAgentCards() {
+  var ranked = AGENTS.slice().sort(function(a,b) {
+    var d = onTimeCount(b) - onTimeCount(a);
+    return d !== 0 ? d : (counts(b).on_time/(counts(b).on_time+counts(b).late||1)) - (counts(a).on_time/(counts(a).on_time+counts(a).late||1));
+  });
+  var rankMap = {};
+  ranked.forEach(function(a,i) { rankMap[a.name] = i+1; });
+  var medals = ['1st','2nd','3rd'];
+  var bc = {on_time:'b-green', late:'b-amber', pending:'b-red', missed:'b-purple'};
+  var labels = {on_time:'On time', late:'Late', pending:'Pending', missed:'Missed'};
+  var container = document.getElementById('agents-grid');
+  container.innerHTML = '';
+
+  AGENTS.forEach(function(a) {
+    var c = counts(a);
+    var oP = c.total ? Math.round(c.on_time/c.total*100) : 0;
+    var lP = c.total ? Math.round(c.late/c.total*100) : 0;
+    var rank = rankMap[a.name];
+    var pill = rank<=3 ? medals[rank-1]+' #'+rank : '#'+rank;
+    var recent = a.trails.slice(0,4).map(function(t) {
+      var dc = t.days!=null ? (t.days<=SLA?'#3B6D11':'#854F0B') : '#A32D2D';
+      return '<tr><td style="font-family:monospace;font-size:10px;color:#777">'+t.id+'</td>'+
+        '<td>'+t.conv+'</td><td>'+(t.booked||'--')+'</td>'+
+        '<td style="text-align:center;font-weight:600;color:'+dc+'">'+(t.days!=null?t.days+'d':'--')+'</td>'+
+        '<td><span class="badge '+bc[t.status]+'">'+labels[t.status]+'</span></td>'+
+        '<td style="font-size:10px;color:#888">'+(t.sub_region||'--')+'</td></tr>';
+    }).join('');
+
+    var el = document.createElement('div');
+    el.className = 'agent-card';
+    el.innerHTML =
+      '<div class="agent-header">'+
+        '<div class="agent-left">'+
+          '<div class="avatar">'+ini(a.name)+'</div>'+
+          '<div><div class="agent-name">'+a.name+'</div>'+
+          '<div class="agent-sub">'+c.total+' trails</div></div>'+
+        '</div>'+
+        '<span class="rank-pill">'+pill+'</span>'+
+      '</div>'+
+      '<div class="metrics">'+
+        '<div class="metric m-green" data-agent="'+a.name+'" data-filter="on_time"><div class="metric-val mv-green">'+c.on_time+'</div><div class="metric-label mv-green">On time</div></div>'+
+        '<div class="metric m-amber" data-agent="'+a.name+'" data-filter="late"><div class="metric-val mv-amber">'+c.late+'</div><div class="metric-label mv-amber">Late</div></div>'+
+        '<div class="metric m-red" data-agent="'+a.name+'" data-filter="pending"><div class="metric-val mv-red">'+c.pending+'</div><div class="metric-label mv-red">Pending</div></div>'+
+        '<div class="metric m-purple" data-agent="'+a.name+'" data-filter="missed"><div class="metric-val mv-purple">'+c.missed+'</div><div class="metric-label mv-purple">Missed</div></div>'+
+      '</div>'+
+      '<div class="sbar">'+
+        '<div class="sb-green" style="width:'+oP+'%"></div>'+
+        '<div class="sb-amber" style="width:'+lP+'%"></div>'+
+        '<div class="sb-red" style="width:'+(100-oP-lP)+'%"></div>'+
+      '</div>'+
+      '<div class="sbar-legend">'+
+        '<div class="sbar-item"><div class="sbar-dot" style="background:#639922"></div>'+oP+'% on time</div>'+
+        '<div class="sbar-item"><div class="sbar-dot" style="background:#EF9F27"></div>'+lP+'% late</div>'+
+      '</div>'+
+      '<div class="recent-header">'+
+        '<span class="recent-label">Recent trails</span>'+
+        '<button class="view-all-btn" data-agent="'+a.name+'" data-filter="all">View all '+c.total+'</button>'+
+      '</div>'+
+      '<table class="mini-table"><thead><tr>'+
+        '<th style="width:20%">Trail ID</th><th style="width:14%">Allocated</th>'+
+        '<th style="width:14%">Booked</th><th style="width:10%">Days</th>'+
+        '<th style="width:16%">Status</th><th>Sub Region</th>'+
+      '</tr></thead><tbody>'+recent+'</tbody></table>';
+    container.appendChild(el);
+  });
+}
+
+// ============================================
+//  HEATMAP (Weekly)
+// ============================================
+function renderHeatmap() {
+  // Populate month dropdown
+  var monthSet = {};
+  AGENTS.forEach(function(a) {
+    a.trails.forEach(function(t) { if(t.conv_sort) monthSet[t.conv_sort.substring(0,7)]=true; });
+  });
+  var months = Object.keys(monthSet).sort();
+  var sel = document.getElementById('heatmap-month');
+  var curVal = sel.value;
+  sel.innerHTML = months.map(function(ym) {
+    var p=ym.split('-');
+    return '<option value="'+ym+'">'+MNTHS[parseInt(p[1])-1]+' '+p[0]+'</option>';
+  }).join('');
+  if (months.indexOf(curVal) >= 0) sel.value = curVal;
+  else if (months.length) sel.value = months[months.length-1];
+
+  var selMonth = sel.value;
+  var weekKeys   = ['W1','W2','W3','W4','W5'];
+  var weekLabels = ['W1 (1-7)','W2 (8-14)','W3 (15-21)','W4 (22-28)','W5 (29-31)'];
+
+  var agentWeek = {};
+  var agentTotal = {};
+  var weekTotals = {W1:0,W2:0,W3:0,W4:0,W5:0};
+  var grandTotal = 0;
+
+  AGENTS.forEach(function(a) {
+    agentWeek[a.name]  = {W1:0,W2:0,W3:0,W4:0,W5:0};
+    agentTotal[a.name] = 0;
+    filteredTrails(a).forEach(function(t) {
+      if (!t.conv_sort) return;
+      if (selMonth && t.conv_sort.substring(0,7) !== selMonth) return;
+      var day = parseInt(t.conv_sort.substring(8,10));
+      var wk  = day<=7?'W1':day<=14?'W2':day<=21?'W3':day<=28?'W4':'W5';
+      agentWeek[a.name][wk]++;
+      agentTotal[a.name]++;
+      weekTotals[wk]++;
+      grandTotal++;
+    });
+  });
+
+  var names = AGENTS.map(function(a){return a.name;}).filter(function(n){return agentTotal[n]>0;});
+  if (!names.length) {
+    document.getElementById('heatmap-wrap').innerHTML = '<div style="text-align:center;padding:2rem;color:#bbb;font-size:13px">No allocation data for this month</div>';
+    return;
+  }
+
+  var allVals = [];
+  names.forEach(function(n) { weekKeys.forEach(function(w) { allVals.push(agentWeek[n][w]); }); });
+  var max = Math.max.apply(null, allVals.concat([1]));
+
+  var html = '<div class="heatmap-wrap"><table class="htbl" style="width:100%">';
+  html += '<thead><tr><th class="hn">Agent</th>';
+  weekLabels.forEach(function(wl) { html += '<th>'+wl+'</th>'; });
+  html += '<th style="min-width:70px;text-align:center;background:#f0f0ee;font-weight:700">Total</th></tr></thead><tbody>';
+
+  names.forEach(function(name) {
+    html += '<tr><td class="hn">'+name+'</td>';
+    weekKeys.forEach(function(wk) {
+      var v = agentWeek[name][wk];
+      var r = heatColor(v, max);
+      var srNote = ACTIVE_SR !== 'all' ? ' ['+ACTIVE_SR+']' : ''; html += '<td class="hcell" style="background:'+r.bg+';color:'+r.txt+'" title="'+name+' '+wk+': '+v+' trails'+srNote+'">'+(v||'')+'</td>';
+    });
+    html += '<td style="text-align:center;font-weight:700;font-size:13px;background:#f5f5f3;padding:6px 12px">'+agentTotal[name]+'</td></tr>';
+  });
+
+  // Total row
+  html += '</tbody><tfoot><tr style="border-top:2px solid #eee"><td class="hn" style="font-weight:700;font-size:11px;color:#333">Total</td>';
+  var maxT = Math.max.apply(null, weekKeys.map(function(w){return weekTotals[w];}).concat([1]));
+  weekKeys.forEach(function(wk) {
+    var v = weekTotals[wk];
+    var t = v/maxT;
+    var bg = v===0?'#f5f5f3':t<0.33?'#f0f0ee':t<0.66?'#d4d4d0':'#888780';
+    var txt = t>=0.66?'#fff':'#444';
+    html += '<td class="hcell" style="background:'+bg+';color:'+txt+';font-weight:700;text-align:center">'+v+'</td>';
+  });
+  html += '<td style="text-align:center;font-weight:700;font-size:14px;background:#e8e8e6;padding:6px 12px">'+grandTotal+'</td>';
+  html += '</tr></tfoot></table>';
+  html += '<div class="hleg"><span>Low</span><span style="display:flex;gap:3px">'+
+    ['#f5f5f3','#DBEEFF','#85B7EB','#378ADD','#185FA5'].map(function(c){return '<span class="hlc" style="background:'+c+'"></span>';}).join('')+
+    '</span><span>High</span><span style="margin-left:8px;color:#aaa">Allocations per week</span></div></div>';
+  document.getElementById('heatmap-wrap').innerHTML = html;
+}
+
+// ============================================
+//  LEADERBOARD
+// ============================================
+function renderLeaderboard() {
+  var srLabel = document.getElementById('lb-sr-label');
+  if (srLabel) srLabel.textContent = ACTIVE_SR !== 'all' ? '📍 ' + ACTIVE_SR : '';
+  var ranked = AGENTS.slice().sort(function(a,b) {
+    var d = onTimeCount(b) - onTimeCount(a);
+    if (d !== 0) return d;
+    var ca=counts(a), cb=counts(b);
+    var ra = ca.on_time+ca.late > 0 ? ca.on_time/(ca.on_time+ca.late) : 0;
+    var rb = cb.on_time+cb.late > 0 ? cb.on_time/(cb.on_time+cb.late) : 0;
+    return rb - ra;
+  });
+  var avCls = ['av1','av2','av3','av4','av4','av4','av4','av4'];
+  var rankLabels = ['1st','2nd','3rd'];
+  var rankCls = ['r1','r2','r3','',''];
+  var lb = document.getElementById('lb-grid');
+  lb.style.gridTemplateColumns = 'repeat('+Math.min(ranked.length,5)+',1fr)';
+  lb.innerHTML = '';
+
+  ranked.forEach(function(a, i) {
+    var c = counts(a);
+    var comp = c.on_time + c.late;
+    var rate = comp > 0 ? Math.round(c.on_time/comp*100) : 0;
+    var rlbl = i < 3 ? rankLabels[i] : (i+1)+'th';
+    var el = document.createElement('div');
+    el.className = 'lb-agent';
+    el.dataset.agent = a.name;
+    el.dataset.filter = 'all';
+    el.innerHTML =
+      '<div class="lb-rank '+(rankCls[i]||'')+'">'+rlbl+'</div>'+
+      '<div class="lb-avatar '+(avCls[i]||'av4')+'">'+ini(a.name)+'</div>'+
+      '<div class="lb-name">'+a.name+'</div>'+
+      '<div class="lb-score">'+c.on_time+'</div>'+
+      '<div class="lb-score-label">On-time closures</div>'+
+      '<div class="lb-mets">'+
+        '<div class="lb-met"><div class="lb-mv" style="color:#3B6D11">'+c.on_time+'</div><div class="lb-ml">On time</div></div>'+
+        '<div class="lb-met"><div class="lb-mv" style="color:#854F0B">'+c.late+'</div><div class="lb-ml">Late</div></div>'+
+        '<div class="lb-met"><div class="lb-mv" style="color:#A32D2D">'+c.pending+'</div><div class="lb-ml">Pending</div></div>'+
+        '<div class="lb-met"><div class="lb-mv" style="color:#5A3E8C">'+c.missed+'</div><div class="lb-ml">Missed</div></div>'+
+      '</div>'+
+      '<div class="lb-bar"><div class="lb-fill" style="width:'+rate+'%"></div></div>'+
+      '<div class="lb-foot">'+c.total+' total | SLA '+rate+'%</div>';
+    lb.appendChild(el);
+  });
+}
+
+// ============================================
+//  DAILY BOOKINGS
+// ============================================
+function renderDailyBookingsFilters() {
+  var ownerSel = document.getElementById('db-owner');
+  var srSel = document.getElementById('db-sr');
+  var owners = DB_DATA.owners || [];
+  var srs = DB_DATA.sub_regions || [];
+  ownerSel.innerHTML = '<option value="all">All owners</option>' +
+    owners.map(function(o){return '<option value="'+o+'">'+o+'</option>';}).join('');
+  srSel.innerHTML = '<option value="all">All regions</option>' +
+    srs.map(function(s){return '<option value="'+s+'">'+s+'</option>';}).join('');
+}
+
+function getBookingCount(date, owner) {
+  var entry = DB_DATA.bookings && DB_DATA.bookings[date] && DB_DATA.bookings[date][owner];
+  if (!entry) return 0;
+  var srFilter = document.getElementById('db-sr') ? document.getElementById('db-sr').value : 'all';
+  if (srFilter === 'all') return typeof entry === 'object' ? (entry.total||0) : entry;
+  return (typeof entry === 'object' && entry.sr) ? (entry.sr[srFilter]||0) : 0;
+}
+
+function renderDailyBookings() {
+  var dates  = DB_DATA.dates  || [];
+  var owners = DB_DATA.owners || [];
+  var ownerFilter = document.getElementById('db-owner').value;
+  var sortVal     = document.getElementById('db-sort').value;
+  var showOwners  = ownerFilter === 'all' ? owners : [ownerFilter];
+
+  if (!dates.length) {
+    document.getElementById('db-table-wrap').innerHTML = '<div style="text-align:center;padding:2rem;color:#bbb;font-size:13px">No booking data yet</div>';
+    return;
+  }
+
+  var sortedDates = dates.slice();
+  if (sortVal === 'date-desc') sortedDates.reverse();
+  else if (sortVal === 'total-desc') {
+    sortedDates.sort(function(a,b) {
+      var ta = showOwners.reduce(function(s,o){return s+getBookingCount(a,o);},0);
+      var tb = showOwners.reduce(function(s,o){return s+getBookingCount(b,o);},0);
+      return tb - ta;
+    });
+  }
+
+  var maxTotal = Math.max.apply(null, sortedDates.map(function(d) {
+    return showOwners.reduce(function(s,o){return s+getBookingCount(d,o);},0);
+  }).concat([1]));
+
+  var header = '<thead><tr><th class="date-col">Date</th>' +
+    showOwners.map(function(o){return '<th class="owner-col">'+o.split(' ')[0]+'</th>';}).join('') +
+    '<th class="total-col">Total</th></tr></thead>';
+
+  var body = '<tbody>' + sortedDates.map(function(d) {
+    var p = d.split('-');
+    var dateStr = MNTHS[parseInt(p[1])-1] + ' ' + parseInt(p[2]) + ', ' + p[0];
+    var total = showOwners.reduce(function(s,o){return s+getBookingCount(d,o);},0);
+    if (total === 0) return '';
+    var pillCls = total>=maxTotal*0.75?'cp-hi':total>=maxTotal*0.5?'cp3':total>=maxTotal*0.25?'cp2':'cp1';
+    var cells = showOwners.map(function(o) {
+      var cnt = getBookingCount(d,o);
+      var cls = cnt===0?'cp0':cnt>=5?'cp-hi':cnt>=3?'cp3':cnt>=2?'cp2':'cp1';
+      return '<td class="count-cell"><span class="count-pill '+cls+'">'+(cnt||'—')+'</span></td>';
+    }).join('');
+    return '<tr><td class="date-cell">'+dateStr+'</td>'+cells+
+      '<td class="total-cell"><span class="total-pill">'+total+'</span></td></tr>';
+  }).filter(Boolean).join('') + '</tbody>';
+
+  document.getElementById('db-table-wrap').innerHTML = '<table class="dbtbl">'+header+body+'</table>';
+}
+
+// ============================================
+//  MODAL
+// ============================================
+function openModal(agentName, filter) {
+  curAgent = agentName;
+  curFilter = filter;
+  document.getElementById('modal-title').textContent = agentName;
+  document.getElementById('modal-sub').textContent = '';
+  renderModalTabs();
+  renderModalBody();
+  document.getElementById('modal').classList.add('open');
+}
+
+function renderModalTabs() {
+  var a = AGENTS.find(function(x){return x.name===curAgent;});
+  if (!a) return;
+  var c = counts(a);
+  var tabs = [
+    {k:'all',     l:'All ('+c.total+')',       cls:'active-all'},
+    {k:'on_time', l:'On time ('+c.on_time+')', cls:'active-green'},
+    {k:'late',    l:'Late ('+c.late+')',        cls:'active-amber'},
+    {k:'pending', l:'Pending ('+c.pending+')', cls:'active-red'},
+    {k:'missed',  l:'Missed ('+c.missed+')',   cls:'active-purple'}
+  ];
+  var cnt = curFilter==='all' ? c.total : filteredTrails(a).filter(function(t){return t.status===curFilter;}).length;
+  document.getElementById('modal-count').textContent = cnt + ' trails';
+  document.getElementById('modal-tabs').innerHTML = tabs.map(function(t) {
+    return '<button class="mtab '+(curFilter===t.k?t.cls:'')+'" data-filter="'+t.k+'">'+t.l+'</button>';
+  }).join('');
+}
+
+function renderModalBody() {
+  var a = AGENTS.find(function(x){return x.name===curAgent;});
+  if (!a) return;
+  var bc = {on_time:'b-green', late:'b-amber', pending:'b-red', missed:'b-purple'};
+  var stmap = {on_time:'On time', late:'Late (>4d)', pending:'Pending', missed:'Missed'};
+
+  var rows = curFilter === 'all' ? a.trails : a.trails.filter(function(t){return t.status===curFilter;});
+  if (curFilter === 'pending' || curFilter === 'missed') {
+    rows = rows.sort(function(x,y){return x.departure_sort.localeCompare(y.departure_sort);});
+  }
+
+  if (curFilter === 'pending' || curFilter === 'missed') {
+    document.getElementById('modal-thead').innerHTML =
+      '<tr><th style="width:12%">Trail ID</th><th style="width:10%">Allocated</th>'+
+      '<th style="width:14%">Departure</th><th style="width:8%">Days left</th>'+
+      '<th style="width:11%">Status</th><th style="width:13%">Sub Region</th><th style="width:32%">Trip custodian</th></tr>';
+    document.getElementById('modal-tbody').innerHTML = rows.length === 0
+      ? '<tr><td colspan="7" style="text-align:center;padding:2rem;color:#bbb">No trails</td></tr>'
+      : rows.map(function(t) {
+          var urg = isUrgent(t.departure_sort);
+          var dl  = dLeft(t.departure_sort);
+          return '<tr>'+
+            '<td style="font-family:monospace;font-size:11px;color:#777">'+t.id+'</td>'+
+            '<td>'+t.conv+'</td>'+
+            '<td style="font-weight:500;color:'+(urg?'#A32D2D':'#1a1a1a')+'">'+t.departure+(urg?'<span class="urgent-tag">Urgent</span>':'')+'</td>'+
+            '<td style="text-align:center;font-weight:600;color:'+(urg?'#A32D2D':'#555')+'">'+(dl!=null?dl+'d':'--')+'</td>'+
+            '<td><span class="badge '+bc[t.status]+'">'+stmap[t.status]+'</span></td>'+
+            '<td style="font-size:11px;color:#888;font-weight:500">'+(t.sub_region||'--')+'</td>'+
+            '<td style="font-size:11px;color:#555">'+t.custodian+'</td>'+
+          '</tr>';
+        }).join('');
+  } else {
+    document.getElementById('modal-thead').innerHTML =
+      '<tr><th style="width:11%">Trail ID</th><th style="width:9%">Allocated</th>'+
+      '<th style="width:9%">Booked</th><th style="width:7%">Days</th>'+
+      '<th style="width:11%">Status</th><th style="width:11%">Departure</th>'+
+      '<th style="width:13%">Sub Region</th><th style="width:29%">Trip custodian</th></tr>';
+    document.getElementById('modal-tbody').innerHTML = rows.length === 0
+      ? '<tr><td colspan="7" style="text-align:center;padding:2rem;color:#bbb">No trails</td></tr>'
+      : rows.map(function(t) {
+          var dc = t.days!=null ? (t.days<=SLA?'#3B6D11':'#854F0B') : '#A32D2D';
+          return '<tr>'+
+            '<td style="font-family:monospace;font-size:11px;color:#777">'+t.id+'</td>'+
+            '<td>'+t.conv+'</td>'+
+            '<td>'+(t.booked||'--')+'</td>'+
+            '<td style="text-align:center;font-weight:600;color:'+dc+'">'+(t.days!=null?t.days+'d':'--')+'</td>'+
+            '<td><span class="badge '+bc[t.status]+'">'+stmap[t.status]+'</span></td>'+
+            '<td style="font-size:11px;color:#888">'+t.departure+'</td>'+
+            '<td style="font-size:11px;color:#888">'+(t.sub_region||'--')+'</td>'+
+            '<td style="font-size:11px;color:#555">'+t.custodian+'</td>'+
+          '</tr>';
+        }).join('');
+  }
+}
+
+// ============================================
+//  ALL PENDING / ALL MISSED MODALS
+// ============================================
+function openAllPending() {
+  var all = [];
+  AGENTS.forEach(function(a) {
+    filteredTrails(a).forEach(function(t) {
+      if (t.status === 'pending') all.push(Object.assign({}, t, {ao_name: a.name}));
+    });
+  });
+  all.sort(function(a,b){return a.departure_sort.localeCompare(b.departure_sort);});
+  document.getElementById('modal-title').textContent = 'All Pending Trails';
+  document.getElementById('modal-sub').textContent = all.length + ' trails — Won, not booked yet';
+  document.getElementById('modal-count').textContent = all.length + ' trails';
+  document.getElementById('modal-tabs').innerHTML = '<span style="font-size:12px;color:#A32D2D;font-weight:600;padding:4px 12px;background:#FCEBEB;border-radius:99px;">Pending — not booked yet (Won)</span>';
+  document.getElementById('modal-thead').innerHTML =
+    '<tr><th style="width:11%">Trail ID</th><th style="width:9%">Allocated</th>'+
+    '<th style="width:13%">Departure</th><th style="width:8%">Days left</th>'+
+    '<th style="width:18%">AO Name</th><th style="width:13%">Sub Region</th>'+
+    '<th style="width:28%">Trip custodian</th></tr>';
+  document.getElementById('modal-tbody').innerHTML = all.length === 0
+    ? '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#bbb">No pending trails</td></tr>'
+    : all.map(function(t) {
+        var urg = isUrgent(t.departure_sort);
+        var dl  = dLeft(t.departure_sort);
+        return '<tr>'+
+          '<td style="font-family:monospace;font-size:11px;color:#777">'+t.id+'</td>'+
+          '<td>'+t.conv+'</td>'+
+          '<td style="font-weight:500;color:'+(urg?'#A32D2D':'#1a1a1a')+'">'+t.departure+(urg?'<span class="urgent-tag">Urgent</span>':'')+'</td>'+
+          '<td style="text-align:center;font-weight:600;color:'+(urg?'#A32D2D':'#555')+'">'+(dl!=null?dl+'d':'--')+'</td>'+
+          '<td style="font-size:11px;font-weight:600;color:#185FA5">'+t.ao_name+'</td>'+
+          '<td style="font-size:11px;color:#888">'+(t.sub_region||'--')+'</td>'+
+          '<td style="font-size:11px;color:#555">'+t.custodian+'</td>'+
+        '</tr>';
+      }).join('');
+  document.getElementById('modal').classList.add('open');
+}
+
+function openAllMissed() {
+  var all = [];
+  AGENTS.forEach(function(a) {
+    filteredTrails(a).forEach(function(t) {
+      if (t.status === 'missed') all.push(Object.assign({}, t, {ao_name: a.name}));
+    });
+  });
+  all.sort(function(a,b){return a.departure_sort.localeCompare(b.departure_sort);});
+  document.getElementById('modal-title').textContent = 'All Missed Trails';
+  document.getElementById('modal-sub').textContent = all.length + ' trails — returned/expired without booking';
+  document.getElementById('modal-count').textContent = all.length + ' trails';
+  document.getElementById('modal-tabs').innerHTML = '<span style="font-size:12px;color:#5A3E8C;font-weight:600;padding:4px 12px;background:#EDE8F7;border-radius:99px;">Missed — No TAL booking</span>';
+  document.getElementById('modal-thead').innerHTML =
+    '<tr><th style="width:12%">Trail ID</th><th style="width:10%">Allocated</th>'+
+    '<th style="width:15%">Departure</th><th style="width:20%">AO Name</th>'+
+    '<th style="width:15%">Sub Region</th><th style="width:28%">Trip custodian</th></tr>';
+  document.getElementById('modal-tbody').innerHTML = all.length === 0
+    ? '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#bbb">No missed trails</td></tr>'
+    : all.map(function(t) {
+        return '<tr>'+
+          '<td style="font-family:monospace;font-size:11px;color:#777">'+t.id+'</td>'+
+          '<td>'+t.conv+'</td>'+
+          '<td style="font-weight:500">'+t.departure+'</td>'+
+          '<td style="font-size:11px;font-weight:600;color:#5A3E8C">'+t.ao_name+'</td>'+
+          '<td style="font-size:11px;color:#888">'+(t.sub_region||'--')+'</td>'+
+          '<td style="font-size:11px;color:#555">'+t.custodian+'</td>'+
+        '</tr>';
+      }).join('');
+  document.getElementById('modal').classList.add('open');
+}
+
+// ============================================
+//  EVENT LISTENERS
+// ============================================
+document.addEventListener('click', function(e) {
+  var bt = e.target.closest('.bucket-trail[data-ao]');
+  if (bt) { openModal(bt.dataset.ao, bt.dataset.filter); return; }
+
+  var pw = e.target.closest('.pw-trail[data-ao]');
+  if (pw) { openModal(pw.dataset.ao, pw.dataset.filter); return; }
+
+  var met = e.target.closest('.metric[data-agent]');
+  if (met) { openModal(met.dataset.agent, met.dataset.filter); return; }
+
+  var vab = e.target.closest('.view-all-btn[data-agent]');
+  if (vab) { openModal(vab.dataset.agent, vab.dataset.filter); return; }
+
+  var lba = e.target.closest('.lb-agent[data-agent]');
+  if (lba) { openModal(lba.dataset.agent, lba.dataset.filter); return; }
+
+  var mtab = e.target.closest('.mtab[data-filter]');
+  if (mtab) { curFilter = mtab.dataset.filter; renderModalTabs(); renderModalBody(); return; }
+
+  if (e.target === document.getElementById('modal') || e.target.id === 'modal-close') {
+    document.getElementById('modal').classList.remove('open');
+  }
+});
+
+// ============================================
+//  INIT — Set period label and load from Supabase
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+  // Set default period label
+  var now = new Date();
+  var first = new Date(now.getFullYear(), now.getMonth(), 1);
+  var startLbl = MNTHS[first.getMonth()] + ' 1';
+  var endLbl   = MNTHS[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
+  document.getElementById('period-label').textContent = startLbl + ' – ' + endLbl;
+
+  // Load data from Supabase
+  loadFromSupabase();
+});
+</script>
+</body>
+</html>
